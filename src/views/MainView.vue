@@ -1,3 +1,9 @@
+<script setup >
+import CardComponent from "../components/CardComponent.vue"
+</script>
+
+
+
 <template>
   <div class="bg-[url('/bg-home.jpg')] bg-cover bg-center h-125">
     <h1 style="font-family: Montserrat, sans-serif; font-weight: 700; font-size: 2.5rem;"
@@ -16,6 +22,11 @@
 
   <div>
     <h2 class="mt-10 ml-5">Estado actual</h2>
+    <img src="/progress-bar.png">
+
+    <h2 class="mt-10 ml-5">Proximos pasos</h2>
+    <CardComponent />
+
   </div>
 
 
