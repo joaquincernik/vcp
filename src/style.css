@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
-*{
-  font-family: 'Inter',sans-serif;
-   font-optical-sizing: auto;
-  font-weight: 400 ;
-  font-style: normal;
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui;
+  --font-title: "Montserrat", ui-sans-serif, system-ui;
 }
+
+@layer base {
+  body {
+    @apply antialiased; /* Ejemplo de cómo aplicar utilidades */
+    font-family: var(--font-sans);
+  }
+  h2{
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 1.5rem;
+  
+  }
+}
+
