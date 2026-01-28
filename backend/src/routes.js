@@ -13,18 +13,34 @@ const limpiarTexto = (texto) => {
     .toLowerCase()
     .trim();
 };
-router.get("/personas", async (req, res) => {
+router.post("/personas", async (req, res) => {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SPREADSHEET_ID,
-      range: "Padron!G3:G1200",
+      range: "Padron!G:G",
     });
 
     const data = response.data.values;
-    const filtrado = data.flat().filter((nombre) => {
-      //flat junta todas essa 1200 en una misma fila
-      // Convertimos a minúsculas para que la búsqueda sea más flexible
-      return limpiarTexto(nombre).includes("Gatti, Celina".toLowerCase());
+    let posicion = -1;
+
+    const busquedaLimpia = limpiarTexto(
+      `${req.body.apellido}, ${req.body.nombre}`,
+    );
+    console.log("====================================");
+    console.log(busquedaLimpia);
+    console.log("====================================");
+    const filtrado = data.flat().filter((nombre, index) => {
+      if (!nombre) return false;
+
+      const nombreLimpio = limpiarTexto(nombre);
+      const coincide = nombreLimpio.includes(busquedaLimpia);
+
+      if (coincide) {
+        // Si coincide, guardamos la posición (index + 1 si quieres conteo humano)
+        posicion = index + 1;
+      }
+
+      return coincide;
     });
 
     if (filtrado.length === 0) {
@@ -34,58 +50,24 @@ router.get("/personas", async (req, res) => {
       });
     }
 
+    //busqueda ahora del detalle de la persona
+    const responseDetalle = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: `Padron!${posicion}:${posicion}`,
+    });
+
     res.json({
       ok: true,
       res: filtrado,
-      data: response.data.values || [],
+      //data: response.data.values || [],
+      posicion: posicion,
+      detalle: responseDetalle.data.values.flat() || [],
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       ok: false,
       error: "Error leyendo Google Sheets",
-    });
-  }
-});
-
-router.post("/buscar", async (req, res) => {
-  try {
-    const { nombre, apellido } = req.body;
-
-    if (!nombre || !apellido) {
-      return res.status(400).json({
-        ok: false,
-        error: "Nombre y apellido son obligatorios",
-      });
-    }
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.SPREADSHEET_ID,
-      range: "Padron!G3:G1200",
-    });
-
-    const rows = response.data.values || [];
-
-    const nombreBuscado = nombre.trim().toLowerCase();
-    const apellidoBuscado = apellido.trim().toLowerCase();
-    const nombreBuscar = apellidoBuscado + ", " + nombreBuscado;
-
-    const resultados = rows.filter((row) => {
-      const nombreSheet = (row[0] || "").toLowerCase();
-
-      return nombreBuscar === nombreSheet;
-    });
-
-    res.json({
-      ok: true,
-      total: resultados.length,
-      resultados,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      ok: false,
-      error: "Error buscando en el padrón",
     });
   }
 });
