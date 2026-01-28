@@ -25,7 +25,7 @@
       </button>
 
       <p class="text-center text-gray-400 text-xs">
-        ¿No tienes una cuenta? <a class="text-blue-600">Registrate</a>
+        ¿No tienes una cuenta? <a href="/registrar/nombre" class="text-blue-600">Registrate</a>
 </p>
     </form>
   </div>

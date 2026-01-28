@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-sm bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+  <div class="max-w-sm bg-white rounded-2xl shadow-lg p-6 border border-gray-100 mb-10">
     <div class="relative mb-6">
       <div class="absolute top-0 right-0 w-20 h-2 bg-orange-500 rounded-bl-lg"></div>
       
