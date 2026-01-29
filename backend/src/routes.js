@@ -26,14 +26,12 @@ router.post("/personas", async (req, res) => {
     const busquedaLimpia = limpiarTexto(
       `${req.body.apellido}, ${req.body.nombre}`,
     );
-    console.log("====================================");
-    console.log(busquedaLimpia);
-    console.log("====================================");
+    
     const filtrado = data.flat().filter((nombre, index) => {
       if (!nombre) return false;
 
       const nombreLimpio = limpiarTexto(nombre);
-      const coincide = nombreLimpio.includes(busquedaLimpia);
+      const coincide = nombreLimpio.includes(busquedaLimpia) ;
 
       if (coincide) {
         // Si coincide, guardamos la posición (index + 1 si quieres conteo humano)
@@ -58,7 +56,7 @@ router.post("/personas", async (req, res) => {
 
     res.json({
       ok: true,
-      res: filtrado,
+      res: filtrado[0],
       //data: response.data.values || [],
       posicion: posicion,
       detalle: responseDetalle.data.values.flat() || [],
