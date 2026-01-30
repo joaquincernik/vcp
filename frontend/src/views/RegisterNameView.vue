@@ -4,6 +4,7 @@ import { ref } from 'vue'
 const nombre = ref('')
 const apellido = ref('')
 const dni = ref('')
+const telefono = ref('')
 
 const loading = ref(false)
 const vista = ref('busqueda')
@@ -30,7 +31,8 @@ const buscar = async () => {
             body: JSON.stringify({
                 nombre: nombre.value,
                 apellido: apellido.value,
-                dni: dni.value
+                dni: dni.value,
+                telefono: telefono.value
             })
         })
 
@@ -91,6 +93,10 @@ const buscar = async () => {
 
 
                     <input v-model="dni" type="text" placeholder="DNI" class="w-full px-4 py-4 rounded-xl bg-gray-100
+             focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+
+                    <input v-model="telefono" type="text" placeholder="Telefono" class="w-full px-4 py-4 rounded-xl bg-gray-100
              focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
                     <button type="submit" :disabled="loading" class="w-full h-14 rounded-xl bg-blue-600 text-white font-semibold
