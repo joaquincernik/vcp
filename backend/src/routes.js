@@ -5,43 +5,59 @@ dotenv.config();
 
 const router = Router();
 // Función para quitar tildes y dejar el texto limpio
-const limpiarTexto = (texto) => {
-  return texto
-    .toString()
-    .normalize("NFD") // Separa la letra de su tilde
-    .replace(/[\u0300-\u036f]/g, "") // Elimina las tildes (caracteres especiales)
-    .toLowerCase()
-    .trim();
-};
+
 router.post("/personas", async (req, res) => {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SPREADSHEET_ID,
-      range: "Padron!G:G",
+      range: "Padron!L:L",
     });
 
-    const data = response.data.values;
+    const data = response.data.values.flat();
     let posicion = -1;
+    const dniF = req.body.dni;
+    const filtrado = data.filter((dni, index) => {
+      if (dni == "-" || dni == "" || dni == null) return false;
 
-    const busquedaLimpia = limpiarTexto(
-      `${req.body.apellido}, ${req.body.nombre}`,
-    );
-    
-    const filtrado = data.flat().filter((nombre, index) => {
-      if (!nombre) return false;
-
-      const nombreLimpio = limpiarTexto(nombre);
-      const coincide = nombreLimpio.includes(busquedaLimpia) ;
-
-      if (coincide) {
-        // Si coincide, guardamos la posición (index + 1 si quieres conteo humano)
+      if (dni == dniF) {
         posicion = index + 1;
+        return true;
       }
-
-      return coincide;
     });
 
+    //------- creacion de persona en padron-------------------
     if (filtrado.length === 0) {
+      //no se encontro la persona en el padron
+
+      //busqueda del ultimo id
+      const responseUltimoId = await sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.SPREADSHEET_ID,
+        range: "Padron!A:A",
+      });
+
+      const ultimoId = responseUltimoId.data.values.flat();
+      const idNuevo = ultimoId
+        .filter((item) => item && item.toString().trim() !== "")
+        .at(-1);
+      console.log("====================================");
+      console.log(idNuevo);
+      console.log("====================================");
+
+      const nombre = req.body.nombre;
+      const apellido = req.body.apellido;
+
+      const guardado = await sheets.spreadsheets.values.append({
+        spreadsheetId: process.env.SPREADSHEET_ID,
+        range: "Padron!A:Z",
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: [
+            [idNuevo + 1, "", "", "", "", "", , apellido, "", "", "", "", ""],
+          ],
+        },
+      });
+
       return res.status(404).json({
         ok: false,
         error: "No se encontraron resultados",

@@ -3,6 +3,8 @@ import { ref } from 'vue'
 
 const nombre = ref('')
 const apellido = ref('')
+const dni = ref('')
+
 const loading = ref(false)
 const vista = ref('busqueda')
 
@@ -27,13 +29,17 @@ const buscar = async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 nombre: nombre.value,
-                apellido: apellido.value
+                apellido: apellido.value,
+                dni: dni.value
             })
         })
 
         if (!res.ok) throw new Error('Error de servidor')
 
         const data = await res.json()
+        console.log('====================================');
+        console.log(data);
+        console.log('====================================');
 
         if (!data.ok) {
             alert('No se encontró la persona')
@@ -44,6 +50,7 @@ const buscar = async () => {
             nombre: data.res,
             telefono: data.detalle?.[18] ?? '-',
             mail: data.detalle?.[19] ?? '-',
+            dni: data.detalle?.[11] ?? '-',
             nacimiento: data.detalle?.[21] ?? '-'
         }
 
@@ -82,6 +89,10 @@ const buscar = async () => {
                     <input v-model="apellido" type="text" placeholder="Apellido" class="w-full px-4 py-4 rounded-xl bg-gray-100
              focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
+
+                    <input v-model="dni" type="text" placeholder="DNI" class="w-full px-4 py-4 rounded-xl bg-gray-100
+             focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
                     <button type="submit" :disabled="loading" class="w-full h-14 rounded-xl bg-blue-600 text-white font-semibold
              flex items-center justify-center gap-2
              active:scale-[0.98]
@@ -111,6 +122,12 @@ const buscar = async () => {
                         <span class="text-gray-500">Nombre</span>
                         <span class="font-medium">{{ persona.nombre }}</span>
                     </div>
+
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">DNI</span>
+                        <span class="font-medium">{{ persona.dni }}</span>
+                    </div>
+
 
                     <div class="flex justify-between">
                         <span class="text-gray-500">Teléfono</span>
