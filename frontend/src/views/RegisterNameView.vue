@@ -5,16 +5,9 @@ const nombre = ref('')
 const apellido = ref('')
 const dni = ref('')
 const telefono = ref('')
+const password = ref('')
 
 const loading = ref(false)
-const vista = ref('busqueda')
-
-const persona = ref({
-    nombre: '',
-    telefono: '',
-    mail: '',
-    nacimiento: ''
-})
 
 const buscar = async () => {
     if (!nombre.value || !apellido.value) {
@@ -32,31 +25,19 @@ const buscar = async () => {
                 nombre: nombre.value,
                 apellido: apellido.value,
                 dni: dni.value,
-                telefono: telefono.value
+                telefono: telefono.value,
+                password: password.value
             })
         })
 
-        if (!res.ok) throw new Error('Error de servidor')
+        const dataResponse = await res.json()
 
-        const data = await res.json()
         console.log('====================================');
-        console.log(data);
+        console.log(res);
+        console.log(dataResponse);
         console.log('====================================');
 
-        if (!data.ok) {
-            alert('No se encontró la persona')
-            return
-        }
-
-        persona.value = {
-            nombre: data.res,
-            telefono: data.detalle?.[18] ?? '-',
-            mail: data.detalle?.[19] ?? '-',
-            dni: data.detalle?.[11] ?? '-',
-            nacimiento: data.detalle?.[21] ?? '-'
-        }
-
-        vista.value = 'confirmar'
+        
     } catch (err) {
         console.error(err)
         alert('Hubo un error al conectar con el servidor')
@@ -79,7 +60,7 @@ const buscar = async () => {
         </button>
 
         <div class="min-h-screen flex flex-col items-center justify-center bg-stone-100 px-4">
-            <div v-if="vista === 'busqueda'" class="w-full max-w-sm">
+            <div class="w-full max-w-sm">
                 <div class="flex justify-center">
                     <img class="h-14 mb-6" src="/logo-negro-cropped.png" alt="Logo">
                 </div>
@@ -99,6 +80,10 @@ const buscar = async () => {
                     <input v-model="telefono" type="text" placeholder="Telefono" class="w-full px-4 py-4 rounded-xl bg-gray-100
              focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
+
+                    <input v-model="password" type="password" placeholder="Contrasena" class="w-full px-4 py-4 rounded-xl bg-gray-100
+             focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
                     <button type="submit" :disabled="loading" class="w-full h-14 rounded-xl bg-blue-600 text-white font-semibold
              flex items-center justify-center gap-2
              active:scale-[0.98]
@@ -112,45 +97,6 @@ const buscar = async () => {
                 </form>
             </div>
 
-            <!-- Confirmar -->
-            <div v-if="vista === 'confirmar'" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 space-y-6">
-                <div class="text-center space-y-1">
-                    <h2 class="text-2xl font-semibold text-gray-800">
-                        ¡Qué bueno verte!
-                    </h2>
-                    <p class="text-sm text-gray-500">
-                        Confirmá que tus datos sean correctos
-                    </p>
-                </div>
-
-                <div class="space-y-4 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Nombre</span>
-                        <span class="font-medium">{{ persona.nombre }}</span>
-                    </div>
-
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">DNI</span>
-                        <span class="font-medium">{{ persona.dni }}</span>
-                    </div>
-
-
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Teléfono</span>
-                        <span class="font-medium">{{ persona.telefono }}</span>
-                    </div>
-
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Email</span>
-                        <span class="font-medium break-all">{{ persona.mail }}</span>
-                    </div>
-
-                    <div class="flex justify-between">
-                        <span class="text-gray-500">Nacimiento</span>
-                        <span class="font-medium">{{ persona.nacimiento }}</span>
-                    </div>
-                </div>
-            </div>
 
         </div>
     </template>

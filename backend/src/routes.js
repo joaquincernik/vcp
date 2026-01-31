@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { sheets } from "./google.js";
+import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -13,24 +14,30 @@ router.post("/personas", async (req, res) => {
       range: "Padron!A:C", //aca traigo las primeras dos columnas, id y dni
     });
 
-    const telefonoIngresado = req.body.telefono;
-    const dniIngresado = req.body.dni;
-    //    const data = response.data.values.flat();
-    console.log("====================================");
-    console.log(response.data.values[response.data.values.length - 1]);
-    console.log("====================================");
+    const personaIngresada = {
+      id: 0,
+      dni: req.body.dni,
+      telefono: req.body.telefono,
+      nombre: req.body.nombre,
+      apellido: req.body.apellido,
+      password: await bcrypt.hash(req.body.password, 10),
+    };
+
+    //const telefonoIngresado = req.body.telefono;
+    //const dniIngresado = req.body.dni;
+
     const index = response.data.values.findIndex(
-      (row) => row[1] === dniIngresado,
+      (row) => row[1] === personaIngresada.dni,
     );
 
     //Caso A, persona encontrado, solo se chequea si se actualiza el telefono
     if (index !== -1) {
+      //extraigo el id de la persona
+      personaIngresada.id = Number(response.data.values[index][0]);
+
       //chequeo si cambio el telefono
-      console.log("====================================");
-      console.log(telefonoIngresado, response.data.values[index][2]);
-      console.log("====================================");
       if (
-        telefonoIngresado !== response.data.values[index][2] ||
+        personaIngresada.telefono !== response.data.values[index][2] ||
         response.data.values[index][2] === "" ||
         response.data.values[index][2] === null ||
         response.data.values[index][2] === undefined
@@ -41,9 +48,10 @@ router.post("/personas", async (req, res) => {
           range: `Padron!C${index + 1}`,
           valueInputOption: "USER_ENTERED",
           requestBody: {
-            values: [[telefonoIngresado]],
+            values: [[personaIngresada.telefono]],
           },
         });
+
         if (guardado.status !== 200) {
           return res.status(400).json({
             ok: false,
@@ -55,11 +63,10 @@ router.post("/personas", async (req, res) => {
 
     //Caso B, persona no encontrada
     else {
-      const ultimoId = response.data.values[response.data.values.length - 1][0];
-      const nombre = req.body.nombre;
-      const apellido = req.body.apellido;
-      const telefono = req.body.telefono;
-      const nombreCompleto = apellido + ", " + nombre;
+      personaIngresada.id =
+        Number(response.data.values[response.data.values.length - 1][0]) + 1;
+      const nombreCompleto =
+        personaIngresada.apellido + ", " + personaIngresada.nombre;
 
       //guardado
       const guardado = await sheets.spreadsheets.values.append({
@@ -70,9 +77,9 @@ router.post("/personas", async (req, res) => {
         requestBody: {
           values: [
             [
-              Number(ultimoId) + 1,
-              dniIngresado,
-              telefono,
+              Number(personaIngresada.id),
+              personaIngresada.dni,
+              personaIngresada.telefono,
               "",
               "",
               "",
@@ -84,97 +91,68 @@ router.post("/personas", async (req, res) => {
               "",
               "",
               "",
-              apellido,
-              nombre,
+              personaIngresada.apellido,
+              personaIngresada.nombre,
             ],
           ],
         },
       });
-      console.log('====================================');
-      console.log(guardado.status);
-      console.log('====================================');
-
-    }
-    //------- creacion de persona en padron-------------------
-    /* if (filtrado.length === 0) {
-      //no se encontro la persona en el padron
-
-      //busqueda del ultimo id
-      const responseUltimoId = await sheets.spreadsheets.values.get({
-        spreadsheetId: process.env.SPREADSHEET_ID,
-        range: "Padron!A:A",
-      });
-
-      const ultimoId = responseUltimoId.data.values.flat();
-      const idNuevo = ultimoId
-        .filter((item) => item && item.toString().trim() !== "")
-        .at(-1);
-
-      const nombre = req.body.nombre;
-      const apellido = req.body.apellido;
-      const nombreCompleto = apellido + ", " + nombre;
-      const telefono = req.body.telefono;
-
-      const guardado = await sheets.spreadsheets.values.append({
-        spreadsheetId: process.env.SPREADSHEET_ID,
-        range: "Padron!A:Z",
-        valueInputOption: "USER_ENTERED",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: {
-          values: [
-            [
-              Number(idNuevo) + 1,
-              "",
-              "",
-              "",
-              "",
-              "",
-              nombreCompleto,
-              "",
-              "",
-              "",
-              "",
-              dniF,
-              "",
-              apellido,
-              nombre,
-              "",
-              "",
-              "",
-              telefono,
-            ],
-          ],
-        },
-      });
-
       if (guardado.status !== 200) {
         return res.status(400).json({
+          status: 400,
           ok: false,
-          error: "Error creando persona en el padron de google sheet",
+          error: "Error guardando persona en el padron",
         });
       }
+    }
+
+    //------------guardado de usuario---------------
+    //primero chequeo de que no existe el usuario con ese dni
+    const responseCheck = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: "Usuarios!B:B",
+    });
+    const indexCheck = responseCheck.data.values.findIndex(
+      (row) => row[0] === personaIngresada.dni,
+    );
+
+    if (indexCheck !== -1) {
+      return res.status(302).json({
+        status: 302,
+        ok: false,
+        error: "Usuario con dni ya registrado",
+      });
+    }
+
+    const guardadoUsuario = await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: "Usuarios!A:F",
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: [
+          [
+            Number(personaIngresada.id),
+            personaIngresada.dni,
+            personaIngresada.telefono,
+            personaIngresada.nombre,
+            personaIngresada.apellido,
+            personaIngresada.password,
+          ],
+        ],
+      },
+    });
+
+    if (guardadoUsuario.status !== 200) {
+      return res.status(400).json({
+        ok: false,
+        error: "Error guardando persona en el padron",
+      });
     } else {
-      //busqueda ahora del detalle de la persona
-      const responseDetalle = await sheets.spreadsheets.values.get({
-        spreadsheetId: process.env.SPREADSHEET_ID,
-        range: `Padron!${posicion}:${posicion}`,
-      });
-
-      const telefonoAnterior = responseDetalle.data.values.flat()[18];
-      const telefonoNuevo = req.body.telefono;
-
-      console.log("====================================");
-      console.log(responseDetalle.data.values.flat());
-      console.log("====================================");
-
-      res.json({
+      return res.status(200).json({
         ok: true,
-        res: filtrado[0],
-        //data: response.data.values || [],
-        posicion: posicion,
-        detalle: responseDetalle.data.values.flat() || [],
       });
-    } */
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({
