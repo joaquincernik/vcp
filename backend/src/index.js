@@ -13,7 +13,7 @@ app.use('/api', routes)
 
 
 // Sincronizar modelos con la base de datos
-sequelize.sync({ force: false })  // Cambia a true solo para desarrollo (borra y recrea tablas)
+sequelize.sync({ force: true })  // Cambia a true solo para desarrollo (borra y recrea tablas)
   .then(() => {
     console.log('Modelos sincronizados con la base de datos.');
   })

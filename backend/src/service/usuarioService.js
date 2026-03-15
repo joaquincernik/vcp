@@ -1,6 +1,7 @@
-import { sheets } from "./google.js";
+import { sheets } from "../google.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import Usuario from "../models/Usuario.js";
 dotenv.config();
 
 export const buscarUsuarioSheet = async (sheet, dni) => {
@@ -53,4 +54,27 @@ export const guardarUsuarioSheet = async (personaIngresada, nombreCompleto) => {
       },
     });
     return guardado;
+}
+
+export const registrarUsuarioBd = async (usuarioData) => {
+try {
+    const nuevoUsuario = await Usuario.create({
+      id: usuarioData.id,
+      dni: usuarioData.dni,
+      telefono: usuarioData.telefono,
+      nombre: usuarioData.nombre,
+      apellido: usuarioData.apellido,
+      password: usuarioData.password,  // Debe estar hasheada con bcrypt
+    });
+    return nuevoUsuario;  // Devuelve el usuario creado
+  } catch (error) {
+    console.error('Error creando usuario:', error);
+    throw error;  // Lanza el error para manejarlo en el controlador
+  }
+
+}
+
+export const buscarUsuarioBd = async (dni) => {
+    return await Usuario.findOne({ where: { dni } });
+   
 }

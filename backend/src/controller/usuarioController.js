@@ -1,19 +1,24 @@
-import { sheets } from "./google.js";
+import { sheets } from "../google.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import {
   buscarUsuarioSheet,
   updateTelefonoSheet,
+  guardarUsuarioSheet,
+  registrarUsuarioBd,
+  buscarUsuarioBd,
 } from "../service/usuarioService.js";
 dotenv.config();
 
-export const createUsuario = async (req, res) => {
+export const crearUsuario = async (req, res) => {
   //sincroniacion con sheets
+  let sheet;
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SPREADSHEET_ID,
       range: "Padron!A:C", //aca traigo las primeras dos columnas, id y dni
     });
+    sheet = response.data.values;
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -32,29 +37,22 @@ export const createUsuario = async (req, res) => {
     password: await bcrypt.hash(req.body.password, 10),
   };
 
-  //const telefonoIngresado = req.body.telefono;
-  //const dniIngresado = req.body.dni;
-
-  /*const index = response.data.values.findIndex(
-      (row) => row[1] === personaIngresada.dni,
-    );*/
-
   const index = await buscarUsuarioSheet(
-    response.data.values,
+    sheet,
     personaIngresada.dni,
   );
 
   //Caso A, persona encontrado, solo se chequea si se actualiza el telefono
   if (index !== -1) {
     //extraigo el id de la persona
-    personaIngresada.id = Number(response.data.values[index][0]);
+    personaIngresada.id = Number(sheet[index][0]);
 
     //chequeo si cambio el telefono
     if (
-      personaIngresada.telefono !== response.data.values[index][2] ||
-      response.data.values[index][2] === "" ||
-      response.data.values[index][2] === null ||
-      response.data.values[index][2] === undefined
+      personaIngresada.telefono !== sheet[index][2] ||
+      sheet[index][2] === "" ||
+      sheet[index][2] === null ||
+      sheet[index][2] === undefined
     ) {
       //actualizamos telefono
       const responseUpdate = await updateTelefonoSheet(personaIngresada, index);
@@ -70,7 +68,7 @@ export const createUsuario = async (req, res) => {
   //Caso B, persona no encontrada
   else {
     personaIngresada.id =
-      Number(response.data.values[response.data.values.length - 1][0]) + 1;
+      Number(sheet[sheet.length - 1][0]) + 1;
     const nombreCompleto =
       personaIngresada.apellido + ", " + personaIngresada.nombre;
 
@@ -78,35 +76,7 @@ export const createUsuario = async (req, res) => {
       personaIngresada,
       nombreCompleto,
     );
-    //guardado
-    /*const guardado = await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.SPREADSHEET_ID,
-      range: "Padron!A:P",
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: {
-        values: [
-          [
-            Number(personaIngresada.id),
-            personaIngresada.dni,
-            personaIngresada.telefono,
-            "",
-            "",
-            "",
-            "",
-            "",
-            nombreCompleto,
-            "",
-            "",
-            "",
-            "",
-            "",
-            personaIngresada.apellido,
-            personaIngresada.nombre,
-          ],
-        ],
-      },
-    });*/
+
     if (guardado.status !== 200) {
       return res.status(400).json({
         status: 400,
@@ -116,51 +86,29 @@ export const createUsuario = async (req, res) => {
     }
   }
 
-  //------------guardado de usuario---------------
-  //primero chequeo de que no existe el usuario con ese dni
-  const responseCheck = await sheets.spreadsheets.values.get({
-    spreadsheetId: process.env.SPREADSHEET_ID,
-    range: "Usuarios!B:B",
-  });
-  const indexCheck = responseCheck.data.values.findIndex(
-    (row) => row[0] === personaIngresada.dni,
-  );
-
-  if (indexCheck !== -1) {
-    return res.status(302).json({
-      status: 302,
-      ok: false,
-      error: "Usuario con dni ya registrado",
-    });
-  }
-
-  const guardadoUsuario = await sheets.spreadsheets.values.append({
-    spreadsheetId: process.env.SPREADSHEET_ID,
-    range: "Usuarios!A:F",
-    valueInputOption: "USER_ENTERED",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: {
-      values: [
-        [
-          Number(personaIngresada.id),
-          personaIngresada.dni,
-          personaIngresada.telefono,
-          personaIngresada.nombre,
-          personaIngresada.apellido,
-          personaIngresada.password,
-        ],
-      ],
-    },
-  });
-
-  if (guardadoUsuario.status !== 200) {
-    return res.status(400).json({
-      ok: false,
-      error: "Error guardando persona en el padron",
-    });
-  } else {
+  //gaurdado en bd
+  try {
+    const usuarioExistente = await buscarUsuarioBd(personaIngresada.dni);
+    if (usuarioExistente) {
+      return res.status(302).json({
+        status: 302,
+        ok: false,
+        error: "Usuario con dni ya registrado en la base de datos",
+      });
+    }
+    const guardadoBd = await registrarUsuarioBd(personaIngresada);
     return res.status(200).json({
+      status: 200,
       ok: true,
+      message: "Usuario registrado exitosamente",   
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: 500,
+      ok: false,
+      error: "Error guardando persona en la base de datos",
     });
   }
+
 };
