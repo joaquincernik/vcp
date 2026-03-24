@@ -11,11 +11,11 @@ const errorUsuarioEncontrado = ref(false)
 const loading = ref(false)
 
 const buscar = async () => {
-    if (!nombre.value || !apellido.value) {
+   /* if (!nombre.value || !apellido.value) {
         alert('Por favor completa ambos campos')
         return
     }
-
+*/
     loading.value = true
 
     try {
@@ -23,8 +23,8 @@ const buscar = async () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                nombre: nombre.value,
-                apellido: apellido.value,
+                nombre: nombre.value.toLowerCase(),
+                apellido: apellido.value.toLowerCase(),
                 dni: dni.value,
                 telefono: telefono.value,
                 password: password.value
@@ -57,15 +57,15 @@ const buscar = async () => {
 </script>
 <template>
     <!-- Flecha volver -->
-    <button @click="$router.back()" class="absolute top-25 left-4 w-20 h-20 flex items-center justify-center
+    <!-- <button @click="$router.back()" class="absolute top-25 left-4 w-20 h-20 flex items-center justify-center
              rounded-full bg-white shadow
-             active:scale-95 transition" aria-label="Volver">
+             active:scale-95 transition" aria-label="Volver"> -->
         <!-- Icono flecha -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24"
+        <!-- <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24"
             stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
-    </button>
+    </button> -->
 
     <div class="min-h-screen flex flex-col items-center justify-center bg-stone-100 px-4">
         <div class="w-full max-w-sm">
@@ -74,22 +74,22 @@ const buscar = async () => {
             </div>
 
             <form @submit.prevent="buscar" class="bg-white rounded-3xl shadow-lg px-6 py-8 space-y-6">
-                <input v-model="nombre" type="text" placeholder="Nombre" class="w-full px-4 py-4 rounded-xl bg-gray-100
+                <input v-model="nombre" required type="text" placeholder="Nombre" class="w-full px-4 py-4 rounded-xl bg-gray-100
              focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
-                <input v-model="apellido" type="text" placeholder="Apellido" class="w-full px-4 py-4 rounded-xl bg-gray-100
-             focus:outline-none focus:ring-2 focus:ring-blue-500" />
-
-
-                <input v-model="dni" type="text" placeholder="DNI" class="w-full px-4 py-4 rounded-xl bg-gray-100
+                <input v-model="apellido" required type="text" placeholder="Apellido" class="w-full px-4 py-4 rounded-xl bg-gray-100
              focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
 
-                <input v-model="telefono" type="text" placeholder="Telefono" class="w-full px-4 py-4 rounded-xl bg-gray-100
+                <input v-model="dni" type="text" required placeholder="DNI" class="w-full px-4 py-4 rounded-xl bg-gray-100
              focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
 
-                <input v-model="password" type="password" placeholder="Contrasena" class="w-full px-4 py-4 rounded-xl bg-gray-100
+                <input v-model="telefono" type="text" required placeholder="Telefono" class="w-full px-4 py-4 rounded-xl bg-gray-100
+             focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+
+                <input v-model="password" minlength="8" type="password" required placeholder="Contrasena" class="w-full px-4 py-4 rounded-xl bg-gray-100
              focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
 
@@ -102,7 +102,7 @@ const buscar = async () => {
                             d="M12 9v2m0 4h.01M12 3a9 9 0 110 18 9 9 0 010-18z" />
                     </svg>
 
-                    <span>Ya existe un usuario con ese DNI</span>
+                    <span>Ya existe un usuario con ese DNI, <a href="/login">inicia sesion</a></span>
                 </div>
 
 

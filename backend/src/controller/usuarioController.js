@@ -1,15 +1,65 @@
 import { sheets } from "../google.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
+import Estado from "../models/Estado.js";
+
 import {
   buscarUsuarioSheet,
   updateTelefonoSheet,
   guardarUsuarioSheet,
   registrarUsuarioBd,
   buscarUsuarioBd,
+  buscarEstadoSheet,
 } from "../service/usuarioService.js";
+import { where } from "sequelize";
 dotenv.config();
 
+export const loginUsuario = async (req, res) => {
+  try {
+    console.log(req.body);
+
+    let dniIngresado = req.body.dni;
+    let password = req.body.password;
+
+    let usuarioBd = await buscarUsuarioBd(dniIngresado);
+    console.log(usuarioBd);
+
+    if (!usuarioBd) {
+      return res.status(404).json({
+        ok: false,
+        error: "Usuario no encontrado",
+      });
+    }
+
+    //check pass
+    const isPasswordValid = await bcrypt.compare(password, usuarioBd.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        ok: false,
+        error: "Contraseña incorrecta",
+      });
+    }
+
+    const token = jwt.sign(
+      { id: usuarioBd.id, dni: usuarioBd.dni, rol: usuarioBd.rol },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }, // Expira en 1 hora; ajusta según necesites
+    );
+
+    return res.status(200).json({
+      ok: true,
+      message: "Login exitoso",
+      token, // Incluye el token
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      ok: false,
+      error: "Error en login",
+    });
+  }
+};
 export const crearUsuario = async (req, res) => {
   //sincroniacion con sheets
   let sheet;
@@ -35,12 +85,10 @@ export const crearUsuario = async (req, res) => {
     nombre: req.body.nombre,
     apellido: req.body.apellido,
     password: await bcrypt.hash(req.body.password, 10),
+    idEstado: 1,
   };
 
-  const index = await buscarUsuarioSheet(
-    sheet,
-    personaIngresada.dni,
-  );
+  const index = await buscarUsuarioSheet(sheet, personaIngresada.dni);
 
   //Caso A, persona encontrado, solo se chequea si se actualiza el telefono
   if (index !== -1) {
@@ -67,8 +115,7 @@ export const crearUsuario = async (req, res) => {
 
   //Caso B, persona no encontrada
   else {
-    personaIngresada.id =
-      Number(sheet[sheet.length - 1][0]) + 1;
+    personaIngresada.id = Number(sheet[sheet.length - 1][0]) + 1;
     const nombreCompleto =
       personaIngresada.apellido + ", " + personaIngresada.nombre;
 
@@ -86,6 +133,35 @@ export const crearUsuario = async (req, res) => {
     }
   }
 
+  //ahora tengo que chequear en que estado esta (m1,m2, etc)
+  let sheetEstado;
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: "Eventos-RegistroManual!B:C", //aca traigo las primeras dos columnas, id y dni
+    });
+    sheetEstado = response.data.values;
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      ok: false,
+      error: "Error leyendo Google Sheets estado",
+    });
+  }
+
+  const arrayEstado = await buscarEstadoSheet(sheetEstado, personaIngresada.id);
+  console.log(arrayEstado);
+  
+  if (arrayEstado !== undefined) {
+    let nombre = arrayEstado[0].toLowerCase();
+    let idEstado = await Estado.findOne({ where: { nombre } });
+    console.log(idEstado?.dataValues?.id);
+
+    idEstado? personaIngresada.idEstado = idEstado?.dataValues?.id : 1;
+    console.log(personaIngresada);
+    
+  }
+
   //gaurdado en bd
   try {
     const usuarioExistente = await buscarUsuarioBd(personaIngresada.dni);
@@ -97,10 +173,12 @@ export const crearUsuario = async (req, res) => {
       });
     }
     const guardadoBd = await registrarUsuarioBd(personaIngresada);
+    console.log(personaIngresada);
+    
     return res.status(200).json({
       status: 200,
       ok: true,
-      message: "Usuario registrado exitosamente",   
+      message: "Usuario registrado exitosamente",
     });
   } catch (error) {
     console.error(error);
@@ -110,5 +188,4 @@ export const crearUsuario = async (req, res) => {
       error: "Error guardando persona en la base de datos",
     });
   }
-
 };

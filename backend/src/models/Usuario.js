@@ -28,6 +28,16 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  idEstado: {
+    type: DataTypes.INTEGER,
+    allowNull: true, 
+    references: {
+      model: 'estados', // IMPORTANTE: Este debe ser el nombre exacto de la tabla de estados en MySQL
+      key: 'id',        // La columna de la tabla 'estados' a la que apunta
+    },
+    onUpdate: 'SET NULL', // Opcional: Qué hacer si el ID del estado cambia
+    onDelete: 'SET NULL' // Opcional: Evita borrar un estado si hay usuarios usándolo
+  }
 }, {
   tableName: 'usuarios',  // Nombre de la tabla en MySQL
   timestamps: true,       // Agrega createdAt y updatedAt automáticamente

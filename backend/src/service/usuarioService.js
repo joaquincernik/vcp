@@ -9,6 +9,15 @@ export const buscarUsuarioSheet = async (sheet, dni) => {
   //devuelve -1 si no encuentra el dni, o el index de la fila si lo encuentra
 };
 
+export const buscarEstadoSheet = async (sheet, id) => {
+  let arrayEncontrados =  sheet.filter(item => item[1] === id.toString());
+  console.log('====================================');
+  console.log(arrayEncontrados);
+  console.log('====================================');
+  return arrayEncontrados.at(-1) //me interesa el ultimo estado
+  //devuelve -1 si no encuentra el id, o el index de la fila si lo encuentra
+};
+
 export const updateTelefonoSheet = async (personaIngresada, index) => {
   //actualizamos telefono
   const guardado = await sheets.spreadsheets.values.update({
@@ -65,6 +74,7 @@ try {
       nombre: usuarioData.nombre,
       apellido: usuarioData.apellido,
       password: usuarioData.password,  // Debe estar hasheada con bcrypt
+      idEstado : usuarioData.idEstado
     });
     return nuevoUsuario;  // Devuelve el usuario creado
   } catch (error) {
