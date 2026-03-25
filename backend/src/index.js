@@ -13,15 +13,6 @@ app.use(cors())
 app.use(express.json())
 app.use('/api', routes)
 
-// ----------------------- deploy - ---------------------------
-// Servir los archivos estáticos del frontend (Vue)
-// Asumimos que pondrás los archivos compilados de Vue en una carpeta llamada "dist"
-app.use(express.static(path.join(__dirname, 'dist')))
-// 3. Manejo de Vue Router (Modo History)
-// Cualquier petición que no sea a la API, devolverá el index.html de Vue
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
-})
 const PORT = process.env.PORT || 3000
 
 
