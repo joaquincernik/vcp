@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 const router = useRouter()
 const nombre = ref('')
 const apellido = ref('')
@@ -11,47 +12,58 @@ const errorUsuarioEncontrado = ref(false)
 const loading = ref(false)
 
 const buscar = async () => {
-   /* if (!nombre.value || !apellido.value) {
-        alert('Por favor completa ambos campos')
-        return
-    }
-*/
-    loading.value = true
+    /* if (!nombre.value || !apellido.value) {
+         alert('Por favor completa ambos campos')
+         return
+     } */
+     
+    loading.value = true;
+    errorUsuarioEncontrado.value = false; // Es buena práctica resetear este valor al iniciar
 
     try {
-        const res = await fetch('http://localhost:3000/api/personas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                nombre: nombre.value.toLowerCase(),
-                apellido: apellido.value.toLowerCase(),
-                dni: dni.value,
-                telefono: telefono.value,
-                password: password.value
-            })
-        })
+        const res = await axios.post('http://localhost:3000/api/register', {
+            nombre: nombre.value.toLowerCase(),
+            apellido: apellido.value.toLowerCase(),
+            dni: dni.value,
+            telefono: telefono.value,
+            password: password.value
+        });
+
+        // 1. SI LLEGAMOS AQUÍ: La petición fue un éxito (Status 2xx).
+        // Axios ya validó que todo salió bien, no necesitamos "res.ok"
+        console.log('Usuario creado exitosamente:', res.data);
         
-        if (res.ok) {
-            router.push(`/home`)  // Redirige a la página de inicio después de un registro exitoso
-            return
-        }
-        else if (res.status === 302) {
-            errorUsuarioEncontrado.value = true
-            return
-        }
-        else{
-            console.log('====================================');
-            console.log("Error creando usuario");
-            console.log('====================================');
-        }
-
-
+        localStorage.setItem("token", res.data.token);
+        router.push(`/home`); 
 
     } catch (err) {
-        console.error(err)
-        alert('Hubo un error al conectar con el servidor')
+        // 2. SI LLEGAMOS AQUÍ: Hubo un error de red o el servidor devolvió un error (4xx, 5xx)
+        console.error('Detalle del error:', err);
+
+        // Axios guarda la respuesta del servidor en `err.response`
+        if (err.response) {
+            // El servidor respondió con un código de estado fuera del rango 2xx
+            console.log('Código de estado:', err.response.status);
+            
+            // Reemplaza el 409 por el código exacto que esté enviando tu backend para "usuario duplicado"
+            // (Si de verdad estás forzando un 302, pon 302, aunque te recomiendo cambiar el backend a 409)
+            if (err.response.status === 409 ) {
+                errorUsuarioEncontrado.value = true;
+            } else {
+                alert('Error al crear usuario. Verifica los datos.');
+            }
+        } 
+        else if (err.request) {
+            // La petición se hizo pero no hubo respuesta del servidor (ej. servidor apagado)
+            alert('No se pudo conectar con el servidor. Revisa tu conexión.');
+        } 
+        else {
+            // Ocurrió un error al configurar la petición antes de enviarla
+            alert('Hubo un problema al procesar la solicitud.');
+        }
     } finally {
-        loading.value = false
+        // 3. SIEMPRE se ejecuta al final, haya éxito o error
+        loading.value = false;
     }
 };
 </script>
@@ -60,8 +72,8 @@ const buscar = async () => {
     <!-- <button @click="$router.back()" class="absolute top-25 left-4 w-20 h-20 flex items-center justify-center
              rounded-full bg-white shadow
              active:scale-95 transition" aria-label="Volver"> -->
-        <!-- Icono flecha -->
-        <!-- <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24"
+    <!-- Icono flecha -->
+    <!-- <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24"
             stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>

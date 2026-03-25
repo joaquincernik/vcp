@@ -10,11 +10,39 @@ import {
   guardarUsuarioSheet,
   registrarUsuarioBd,
   buscarUsuarioBd,
+  buscarUsuarioBdId,
   buscarEstadoSheet,
 } from "../service/usuarioService.js";
 import { where } from "sequelize";
 dotenv.config();
 
+export const detalleUsuario = async (req,res) =>{
+  const {id} = req.params;
+  try{
+
+    const usuario = await buscarUsuarioBdId(id)
+  
+    if (!usuario) {
+        return res.status(404).json({
+          ok: false,
+          error: "Usuario no encontrado",
+        });
+      }
+    return res.status(200).json({
+      ok: true,
+      usuario
+    });
+  }
+  catch(error){
+    console.log('====================================');
+    console.log(error);
+    console.log('====================================');
+    res.status(500).json({
+      ok: false,
+      error: "Error interno buscando usuario por detalle",
+    });
+  }
+}
 export const loginUsuario = async (req, res) => {
   try {
     console.log(req.body);
@@ -23,7 +51,9 @@ export const loginUsuario = async (req, res) => {
     let password = req.body.password;
 
     let usuarioBd = await buscarUsuarioBd(dniIngresado);
-    console.log(usuarioBd);
+    console.log(usuarioBd.Estado.nombre);
+
+    let nombreEstado = usuarioBd.Estado.nombre;;
 
     if (!usuarioBd) {
       return res.status(404).json({
@@ -41,8 +71,11 @@ export const loginUsuario = async (req, res) => {
       });
     }
 
+
+    await checkUpdateEstado(nombreEstado, usuarioBd.id);
+
     const token = jwt.sign(
-      { id: usuarioBd.id, dni: usuarioBd.dni, rol: usuarioBd.rol },
+      { id: usuarioBd.id, dni: usuarioBd.dni, rol: usuarioBd.rol, nombre: usuarioBd.nombre },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }, // Expira en 1 hora; ajusta según necesites
     );
@@ -150,15 +183,15 @@ export const crearUsuario = async (req, res) => {
   }
 
   const arrayEstado = await buscarEstadoSheet(sheetEstado, personaIngresada.id);
-  console.log(arrayEstado);
+ // console.log(arrayEstado);
   
   if (arrayEstado !== undefined) {
     let nombre = arrayEstado[0].toLowerCase();
     let idEstado = await Estado.findOne({ where: { nombre } });
-    console.log(idEstado?.dataValues?.id);
+   // console.log(idEstado?.dataValues?.id);
 
     idEstado? personaIngresada.idEstado = idEstado?.dataValues?.id : 1;
-    console.log(personaIngresada);
+  //  console.log(personaIngresada);
     
   }
 
@@ -166,8 +199,8 @@ export const crearUsuario = async (req, res) => {
   try {
     const usuarioExistente = await buscarUsuarioBd(personaIngresada.dni);
     if (usuarioExistente) {
-      return res.status(302).json({
-        status: 302,
+      return res.status(409).json({
+        status: 409,
         ok: false,
         error: "Usuario con dni ya registrado en la base de datos",
       });
@@ -175,10 +208,16 @@ export const crearUsuario = async (req, res) => {
     const guardadoBd = await registrarUsuarioBd(personaIngresada);
     console.log(personaIngresada);
     
+        const token = jwt.sign(
+      { id: personaIngresada.id, dni: personaIngresada.dni, rol: personaIngresada.rol, nombre: personaIngresada.nombre },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }, // Expira en 1 hora; ajusta según necesites
+    );
     return res.status(200).json({
       status: 200,
       ok: true,
       message: "Usuario registrado exitosamente",
+      token
     });
   } catch (error) {
     console.error(error);
